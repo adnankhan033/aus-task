@@ -1,0 +1,5 @@
+name: 'aus_adnankhan_task'
+type: module
+description: 'Build custom module for Head tag and show alert.'
+core_version_requirement: ^8 || ^9
+package: 'Custom'

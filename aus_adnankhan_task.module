@@ -1,0 +1,137 @@
+<?php
+/**
+ * @file
+ * Contains aus_adnankhan_task.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use \Drupal\node\Entity\Node;
+use \Drupal\file\Entity\File;
+use Drupal\Component\Serialization\Json;
+
+/**
+ * Implements hook_help().
+ */
+function aus_adnankhan_task_help($route_name, RouteMatchInterface $route_match)
+{
+    switch ($route_name)
+    {
+            // Main module help for the aus_adnankhan_task module.
+            
+        case 'help.page.aus_adnankhan_task':
+            $output = '';
+            $output .= '<h3>' . t('About') . '</h3>';
+            $output .= '<p>' . t('Build custom module for Head tag and show alert.') . '</p>';
+            return $output;
+
+        default:
+    }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function aus_adnankhan_task_theme()
+{
+    return ['aus_adnankhan_task' => ['render element' => 'children', ], ];
+}
+
+
+/**
+ * Implements hook_form_alter().
+ */
+function aus_adnankhan_task_form_alter(&$form, &$form_state, $form_id)
+{
+    // ******* Show alert for the first time when module enabled *******//
+    if ($form_id == 'system_modules')
+    {
+        if (isset($_SESSION['alert_session']))
+        {
+            $_SESSION['alert_session'] = $_SESSION['alert_session'] + 1;
+        }
+        else
+        {
+            $_SESSION['alert_session'] = 1;
+        }
+        
+        $page_load_count = $_SESSION['alert_session'];
+        // echo"views = ".$page_load_count;
+        if ($page_load_count == 1)
+        {
+            $library = $form['#attached']['library'][] = 'aus_adnankhan_task/example';
+        }
+    
+
+    }
+}
+/**
+ * Implements hook_uninstall().
+ */
+function aus_adnankhan_task_uninstall()
+{
+    unset($_SESSION['alert_session']);
+}
+
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function aus_adnankhan_task_preprocess_html(&$variables)
+{
+    if ($variables['root_path'] == 'node')
+    {
+
+        global $base_url;
+        $current_path = \Drupal::request()->getRequestUri();
+        $node = \Drupal::routeMatch()->getParameter('node');
+
+        if ($node != null)
+        {
+            $nid = $node->id();
+            $title = $node->getTitle();
+            $body = strip_tags($node->get('body')->value);
+            $uid = $node->getOwnerId();
+            $type = $node->getType();
+            $createdTimestamp = $node->getCreatedTime();
+            $getChangeTime = $node->getChangedTime();
+            $createTime = date('m-d-Y', $createdTimestamp);
+            $getChangedTime = date('m-d-Y', $getChangeTime);
+            $img = $node->get("field_image")
+                ->getValue() [0];
+            $image_target_id = $img['target_id'];
+            $imgWidth = $img['width'];
+            $imgHeight = $img['height'];
+            $LoadImage = File::load($image_target_id);
+            $getImage = $LoadImage->getFileUri();
+            $siteLogo = file_create_url(theme_get_setting('logo.url'));
+
+            $protocol = isset($_SERVER['HTTPS']) ? 'https://' : 'http://';
+            $site_logo_path = $protocol . $_SERVER['HTTP_HOST'] . $siteLogo;
+
+            $load_img_size = getimagesize($site_logo_path);
+            $site_logo_width = $load_img_size[0];
+            $site_logo_height = $load_img_size[1];
+
+            $UserAccount = \Drupal\user\Entity\User::load($uid);
+            $autherName = $UserAccount->getAccountName();
+            $autherRole = $UserAccount->getRoles() [1];
+
+            $arrayVar = ["@context" => "https://schema.org/", "@type" => $type, "mainEntityOfPage" => ["@type" => "WebPage", "@id" => $current_path], "headline" => $body, "image" => ["@type" => "ImageObject", "url" => $type, "width" => $imgWidth, "height" => $imgHeight, ], "author" => ["@type" => $autherRole, "name" => $autherName, "url" => $base_url, ], "publisher" => ["@type" => $autherRole, "name" => $base_url, "logo" => ["@type" => "ImageObject", "url" => $siteLogo, "width" => $site_logo_width, "height" => $site_logo_height, ], "datePublished" => $createTime, "dateModified" => $getChangedTime, ], ];
+
+            $article_node_json = Json::encode($arrayVar);
+            $full_node_view = str_replace("\/", "/", $article_node_json);
+
+            $head_tag = ['#tag' => 'script', 
+            '#value' => $full_node_view,
+             '#attributes' => [
+              'type' => 'application/ld+json', 
+              'id' => 'custom_article_node_value',
+               ],
+
+            ];
+            $variables['page']['#attached']['html_head'][] = [$head_tag, 'application/ld+json'];
+        }
+
+    }
+}
+

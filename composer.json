@@ -1,0 +1,13 @@
+{
+    "name": "aus_adnankhan_task",
+    "type": "drupal-module",
+    "description": "Build custom module for Head tag and show alert.",
+    "keywords": [
+    ],
+    "homepage": "https://www.drupal.org/project/aus_adnankhan_task",
+    "minimum-stability": "dev",
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/aus_adnankhan_task",
+        "source": "http://cgit.drupalcode.org/aus_adnankhan_task",
+    },
+}
